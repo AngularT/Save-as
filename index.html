@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="lib/reset.css"/>
+		<script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+		<script src="lib/saveAs.js" type="text/javascript" charset="utf-8"></script>
+		<style type="text/css">
+			html,body{width: 100%;height: 100%;background: #f80729;}
+			#wrap{position: relative;}
+			#lucyBoy{position: absolute;top: 61%;width: 35%;left: 50.8%;z-index: 1;}
+			.button{cursor: pointer;position: absolute;top: 86%;left: 61%;width: 251px;height: 63px;background:#5787ff;text-align: center;color: #fff;line-height: 63px;font-size: 35px}
+			.number-box{position: absolute;width: 35%;left: 50.8%;top: 46.75%;height:35.18%;z-index: 2;color: #fff;font-size: 35px;text-align: center;overflow: hidden;}
+			#downLoad{width:3%;height: 18%;position: absolute;top: 4%;right: 0;cursor: pointer;}
+		</style>
+	</head>
+	<body>
+		<div id="wrap">
+			<img src="lib/images/bg_01.jpg"/>
+			<img src="lib/images/bg_02.jpg"/>
+			<img src="lib/images/luckBoy.png" id="lucyBoy"/>
+			<div class="button" id="start">开始抽奖</div>
+			<div class="number-box">
+				<ul>
+					
+				</ul>
+			</div>
+			<div id="downLoad"></div>
+		</div>
+		
+	</body>
+<script type="text/javascript">
+	window.onload=function(){
+		var lines=null;
+		var a=1,timer,t=0,v=0,randomNum,str=" ",stopTime;
+		var resultArr=[];
+		var result="";
+	    var flag=1;
+		var numBox=$(".number-box"),
+		    boxHeight=numBox.height(),
+		    lineHeight=boxHeight/5,
+		    boxWidth=numBox.width();
+		$.ajax({
+			type:"get",
+			url:"lib/num.txt",
+			success:function(data){
+				lines = data.match(/[^\r\n]+/g);
+				for(var i=0;i<10;i++){
+					randomNum=lines[parseInt(Math.random()*lines.length)];
+//					randomNum=randomNum.replace(/^(.{4})(.{4})(.*)$/, '$1****$3');
+			    	addNum(randomNum);
+				};
+				$("ul").html(str);
+				$(document).keydown(function(event){
+					if(event.keyCode==13){
+						$("#start").click()
+					}
+				});
+			    $("#start").on("click",function(){
+					if(flag==1){
+						t=0;
+						$("ul").css("margin-top","0px");
+						timer=setInterval(speedup,10);
+						$(this).html("停止");
+						flag=2;
+					}else if(flag==2){
+						flag=3;
+						clearInterval(timer);
+						timer=setInterval(sppeddown,15);
+					}
+				})
+			    $("#downLoad").on("click",function(){
+			    	var blob = new Blob([localStorage.resultArr], {type: "text/plain;charset=utf-8"});
+					saveAs(blob, "resultArr.txt");
+			    })
+			}
+		});
+		function addNum(number){
+			str+="<li style='height:"+lineHeight+"px;line-height:"+lineHeight+"px'>"+number+"</li>"
+		}
+		function speedup(){
+			t+=0.1;
+			v-=a*t;
+			if(t>30){
+				t=30;
+			}
+			changeNumber()
+		}
+		var arr=[0,lineHeight,2*lineHeight,3*lineHeight,4*lineHeight,5*lineHeight]
+		function sppeddown(){
+			t-=0.2;
+			if(t<2){	
+				t=2;
+				clearInterval(timer);
+				var overTop=Math.abs(v);
+				for(var i=0;i<arr.length;i++){
+					if(overTop<arr[i]){
+						if(i==5){
+							overTop=arr[i];
+							break;
+						}else{
+							overTop=arr[i+1];
+							break;
+						}
+						
+					}
+				}
+				$("ul").animate({
+					"margin-top":-overTop+"px"
+				},1000,"linear",function(){
+					$("#start").html("开始抽奖");
+					flag=1;
+				});
+				//输出中奖名单
+				result=$("li").eq(parseInt(overTop/lineHeight)+2).html();
+				if(localStorage.resultArr){
+					localStorage.resultArr+=","+result;
+				}else{
+					localStorage.resultArr=result;
+				}
+				console.log(localStorage.resultArr)
+			}else{
+				v-=a*t;
+				changeNumber()
+			}
+		}
+		function changeNumber(){
+			$("ul").css("margin-top",v+"px");
+			if(v<-boxHeight){
+				$("ul").find("li").slice(0, 5).appendTo($("ul"));
+				$("ul").css("margin-top","0px");
+				for(var i=5;i<10;i++){
+					randomNum=lines[parseInt(Math.random()*lines.length)];
+//					randomNum=randomNum.replace(/^(.{4})(.{4})(.*)$/, '$1****$3');
+					$("li").eq(i).html(randomNum)
+				}
+				v=0;
+			}
+		}
+		
+//		function stop(){
+//			setTimeout(function(){
+//				var overTop=-(parseInt(Math.abs(v)/lineHeight)+1)*lineHeight;
+//				$("ul").animate({
+//					"margin-top":overTop+"px"
+//				},2000);
+//				clearInterval(timer)
+//				
+//				console.log(overTop+"----"+v+"-----"+ v%(boxHeight/5))
+//			},2000)
+//		}
+	}
+	
+</script>
+</html>
